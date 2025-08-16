@@ -8,7 +8,7 @@ export function verifyToken(req,res,next){
     if (!token) return res.status(401).json({ message: "Missing token" });
 
     try{
-        decoded= jwt.verify(token, process.env.JWT_SECRET);
+        const decoded= jwt.verify(token, process.env.JWT_SECRET);
         req.user=decoded;
         next();
     }

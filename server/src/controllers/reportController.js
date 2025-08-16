@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import fs from "fs";
 import path from "path";
+import { report } from "process";
 
 //Create a new report 
 export const createReport = async (req,res)=>{
