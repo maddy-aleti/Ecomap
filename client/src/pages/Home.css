@@ -10,7 +10,6 @@
   padding: 0;
 }
 
-/* ...existing code... */
 .hero-header {
   display: flex;
   justify-content: space-between;
@@ -24,12 +23,13 @@
 
 .logo {
   display: flex;
-  align-items: center; /* Ensures logo text is vertically centered */
+  align-items: center;
   font-size: 2.2rem;
+  font-family: 'Pacifico', cursive;
   font-weight: bold;
   color: #2ecc40;
-  font-family: 'Segoe UI', sans-serif;
   letter-spacing: 1px;
+  gap: 0.5rem; /* space between text and leaf */
 }
 
 .hero-header nav {
@@ -135,4 +135,82 @@
 
 .secondary-btn:hover {
   background: #fff;
+}
+
+/* Add to your Home.css or App.css */
+.platform-features {
+  padding: 64px 0 48px 0;
+  background: #fff;
+  text-align: center;
+}
+
+.features-title {
+  font-size: 2.3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #111;
+}
+
+.features-subtitle {
+  font-size: 1.15rem;
+  color: #444;
+  margin-bottom: 2.5rem;
+}
+
+.features-cards {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.feature-card {
+  background: #f8f8f8;
+  border-radius: 18px;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  min-width: 270px;
+  max-width: 340px;
+  flex: 1 1 300px;
+  box-shadow: 0 4px 16px rgba(44,204,64,0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: box-shadow 0.2s;
+}
+
+.feature-card:hover {
+  box-shadow: 0 8px 32px rgba(44,204,64,0.13);
+}
+
+.feature-icon {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-card h3 {
+  font-size: 1.18rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: #222;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #444;
+  margin: 0;
+  text-align: left;
+}
+
+.feature-green {
+  background: #e6faee;
+}
+
+.feature-blue {
+  background: #eaf3fe;
+}
+
+.feature-orange {
+  background: #fff5ec;
 }
