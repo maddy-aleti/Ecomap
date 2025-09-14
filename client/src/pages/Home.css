@@ -214,3 +214,142 @@
 .feature-orange {
   background: #fff5ec;
 }
+
+/* ...existing code... */
+.participate-section {
+  background: gainsboro;
+  padding: 56px 0 32px 0;
+  text-align: center;
+}
+
+.participate-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 0.5rem;
+}
+
+.participate-subtitle {
+  font-size: 1.1rem;
+  color: #444;
+  margin-bottom: 2.2rem;
+}
+
+.participate-steps {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+
+.participate-step {
+  flex: 1 1 220px;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.participate-circle {
+  background: #e6faee;
+  color: #2ecc40;
+  font-size: 1.7rem;
+  font-weight: 700;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+}
+
+.participate-step h3 {
+  font-size: 1.13rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: #222;
+}
+
+.participate-step p {
+  font-size: 1rem;
+  color: #444;
+  margin: 0;
+}
+
+/* ...existing code... */
+.footer-section {
+  background: #181f2a;
+  color: #fff;
+  padding: 40px 0 0 0;
+  margin-top: 0;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 5vw 32px 5vw;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.footer-brand {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.footer-logo {
+  font-family: 'Pacifico', cursive;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2ecc40;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.footer-brand p {
+  color: #b2ffb2;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 3rem;
+  flex: 3 1 600px;
+  justify-content: space-between;
+  min-width: 400px;
+}
+
+.footer-links h4 {
+  font-size: 1.1rem;
+  color: #fff;
+  margin-bottom: 0.7rem;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  color: #e0e0e0;
+  font-size: 0.97rem;
+  margin-bottom: 0.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  color: #b2b2b2;
+  font-size: 0.97rem;
+  padding: 18px 0 12px 0;
+  border-top: 1px solid #222a36;
+  margin-top: 16px;
+}
+/* ...existing code... */

@@ -63,6 +63,74 @@ function Home() {
           </div>
         </div>
       </section>
+      {/* How to Participate Section START */}
+      <section className="participate-section">
+        <h2 className="participate-title">How to Participate</h2>
+        <p className="participate-subtitle">Three simple steps to contribute to environmental protection</p>
+        <div className="participate-steps">
+          <div className="participate-step">
+            <div className="participate-circle">1</div>
+            <h3>Create Account</h3>
+            <p>Choose your role: Citizen, Government Authority, Volunteer, or Administrator</p>
+          </div>
+          <div className="participate-step">
+            <div className="participate-circle">2</div>
+            <h3>Discover Issues</h3>
+            <p>Mark environmental problems on the map, upload photos, and provide detailed descriptions</p>
+          </div>
+          <div className="participate-step">
+            <div className="participate-circle">3</div>
+            <h3>Participate in Solutions</h3>
+            <p>Vote for important issues, join discussions, and help resolve environmental problems</p>
+          </div>
+        </div>
+      </section>
+      {/* Footer Section START */}
+      <footer className="footer-section">
+        <div className="footer-content">
+          <div className="footer-brand">
+            <span className="footer-logo">
+              EcoMap
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#2ecc40" style={{marginLeft: "0.3rem"}}>
+                <path d="M12 2C10 10 2 12 2 12s2 8 10 10c8-2 10-10 10-10s-8-2-10-10z"/>
+              </svg>
+            </span>
+            <p>Protecting the environment starts with me</p>
+          </div>
+          <div className="footer-links">
+            <div>
+              <h4>Platform Features</h4>
+              <ul>
+                <li>Environmental Issue Reporting</li>
+                <li>Real-time Map View</li>
+                <li>Progress Tracking</li>
+                <li>Volunteer Participation</li>
+              </ul>
+            </div>
+            <div>
+              <h4>User Roles</h4>
+              <ul>
+                <li>Citizens</li>
+                <li>Government Authorities</li>
+                <li>Environmental Volunteers</li>
+                <li>Platform Administrators</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Contact Us</h4>
+              <ul>
+                <li>Hotline: 400-123-4567</li>
+                <li>Email: support@ecomap.com</li>
+                <li>Hours: 9:00-18:00</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          © 2024 EcoMap. Protecting the environment is everyone's responsibility.
+        </div>
+      </footer>
+      {/* Footer Section END */}
     </div>
   );
 }
