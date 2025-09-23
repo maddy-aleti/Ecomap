@@ -12,9 +12,13 @@ CREATE TABLE IF NOT EXISTS reports (
   user_id INT REFERENCES users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
-  location TEXT,
+  category TEXT,
+  latitude NUMERIC(9,6),
+  longitude NUMERIC(9,6),
+  image_url TEXT,
   status TEXT DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  severity TEXT
 );
 
 CREATE TABLE IF NOT EXISTS votes (
