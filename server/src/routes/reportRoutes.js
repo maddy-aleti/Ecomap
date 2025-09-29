@@ -12,7 +12,7 @@ import {verifyToken} from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 //create report (with image upload)
-router.post("/reports", verifyToken , upload.single("image"),createReport);
+router.post("/reports", upload.single("image"),createReport);
 
 //get reports (with optional filters)
 router.get("/reports", getReports);

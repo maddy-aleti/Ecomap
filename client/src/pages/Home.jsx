@@ -1,6 +1,20 @@
 import { Link } from "react-router-dom";
+import {useState, useEffect } from "react";
 
 function Home() {
+  const [isLoggedIn, setIsLoggedIn] =useState(false);
+  //check if user is Logged in
+  useEffect(() =>{
+    const token = localStorage.getItem("token") || sessionStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const handleRestrictedClick =(e)=>{
+    if(!isLoggedIn){
+      e.preventDefault();
+      alert('Please login or Register first');
+    }
+  }
   return (
     <div>
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -12,10 +26,43 @@ function Home() {
             </svg>
           </div>
           <nav className="flex items-center space-x-8">
-            <Link to="/map" className="text-gray-700 hover:text-eco-green transition-colors">Environment Map</Link>
-            <Link to="/reports" className="text-gray-700 hover:text-eco-green transition-colors">Issue Reports</Link>
-            <Link to="/login" className="px-4 py-2 text-gray-700 hover:text-eco-green transition-colors">Login</Link>
-            <Link to="/register" className="px-6 py-2 bg-eco-green text-white rounded-lg hover:bg-green-600 transition-colors">Register</Link>
+            <Link
+             to={isLoggedIn ? "/map" : "#"} 
+            className={`${isLoggedIn ? 'text-gray-700 hover:text-eco-green' : 'text-gray-400 cursor-not-allowed'} transition-colors`}
+            onClick={handleRestrictedClick}
+             >Environment Map</Link>
+           <Link 
+              to={isLoggedIn ? "/reports" : "#"} 
+              className={`${isLoggedIn ? 'text-gray-700 hover:text-eco-green' : 'text-gray-400 cursor-not-allowed'} transition-colors`}
+              onClick={handleRestrictedClick}
+            >
+              Issue Reports
+            </Link>
+             {isLoggedIn && (
+              <Link 
+                to="/dashboard"
+                className="text-gray-700 hover:text-eco-green transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
+           {!isLoggedIn ? (
+              <>
+                <Link to="/login" className="px-4 py-2 text-gray-700 hover:text-eco-green transition-colors">Login</Link>
+                <Link to="/register" className="px-6 py-2 bg-eco-green text-white rounded-lg hover:bg-green-600 transition-colors">Register</Link>
+              </>
+            ) : (
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  sessionStorage.removeItem('token');
+                  setIsLoggedIn(false);
+                }}
+                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Logout
+              </button>
+            )}
           </nav>
         </header>
         <div className="flex flex-col items-center justify-center text-center px-8 py-16">
@@ -27,8 +74,25 @@ function Home() {
             Discover environmental issues and report them instantly. Government responds quickly, volunteers participate actively. Let's create a better living environment together.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link to="/report" className="px-8 py-3 bg-eco-green text-white rounded-lg font-semibold hover:bg-green-600 transition-colors">Report Issue Now</Link>
-            <Link to="/map" className="px-8 py-3 border-2 border-eco-green text-eco-green rounded-lg font-semibold hover:bg-eco-green hover:text-white transition-colors">View Environment Map</Link>
+            {!isLoggedIn ? (
+              <>
+                <Link to="/register" className="px-8 py-3 bg-eco-green text-white rounded-lg font-semibold hover:bg-green-600 transition-colors">
+                  Register to Report Issues
+                </Link>
+                <Link to="/login" className="px-8 py-3 border-2 border-eco-green text-eco-green rounded-lg font-semibold hover:bg-eco-green hover:text-white transition-colors">
+                  Login to View Map
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/report" className="px-8 py-3 bg-eco-green text-white rounded-lg font-semibold hover:bg-green-600 transition-colors">
+                  Report Issue Now
+                </Link>
+                <Link to="/map" className="px-8 py-3 border-2 border-eco-green text-eco-green rounded-lg font-semibold hover:bg-eco-green hover:text-white transition-colors">
+                  View Environment Map
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

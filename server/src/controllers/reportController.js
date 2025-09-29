@@ -1,19 +1,23 @@
 import pool from "../config/db.js";
 import fs from "fs";
 import path from "path";
-import { report } from "process";
 
 //Create a new report 
 export const createReport = async (req,res)=>{
     try{
-        const {title,description,location,status,user_id}=req.body;
+        const {title,description,category,severity,location,status,user_id}=req.body;
         const image = req.file ? req.file.filename : null;
 
-        const newReport= await pool.query(
-            `insert into reports 
-            (title,description, location ,status , user_id , image)
-            values($1,$2,$3,$4,$5,$6) returning *`,
-            [title,description,location, status || "pending", user_id, image]
+        // Validate required fields
+        if (!title || !description || !category || !severity || !location || !user_id) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+         const newReport= await pool.query(
+            `INSERT INTO reports 
+            (title, description, category, severity, location, status, user_id, image_url)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [title, description, category, severity, location, status || "pending", user_id, image]
         );
         res.status(201).json(newReport.rows[0]);
     } catch (error) {
@@ -71,7 +75,7 @@ export const updateReportStatus = async (req,res)=>{
             [status, id]
         );
         if( updated.rows.length ===0){
-            res.status(404).json({error:"Report not found"});
+           return res.status(404).json({error:"Report not found"});
         }
         res.json(updated.rows[0]);
     }
