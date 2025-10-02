@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import {useState, useEffect } from "react";
+import 'leaflet/dist/leaflet.css';
 
 function Home() {
   const [isLoggedIn, setIsLoggedIn] =useState(false);
@@ -32,7 +33,7 @@ function Home() {
             onClick={handleRestrictedClick}
              >Environment Map</Link>
            <Link 
-              to={isLoggedIn ? "/reports" : "#"} 
+              to={isLoggedIn ? "/report" : "#"} 
               className={`${isLoggedIn ? 'text-gray-700 hover:text-eco-green' : 'text-gray-400 cursor-not-allowed'} transition-colors`}
               onClick={handleRestrictedClick}
             >

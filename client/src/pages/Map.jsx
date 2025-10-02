@@ -1,52 +1,73 @@
-import {useState} from "react";
+import {useState, useEffect} from "react";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
-const issueData=[
-  {
-    id: 1,
-    title: "Overflowing Trash Bin in Park",
-    status: "Pending",
-    description: "The trash bin at the east gate of Central Park has overflowed, affecting environmental hygiene",
-    votes: 23,
-    date: "2024-01-15",
-    author: "John Smith"
-  },
-  {
-    id: 2,
-    title: "Severe River Water Pollution",
-    status: "In Progress",
-    description: "The river near the residential area has developed an odor and water quality has significantly...",
-    votes: 45,
-    date: "2024-01-12",
-    author: "Sarah Johnson"
-  },
-   {
-    id: 3,
-    title: "Street Noise Pollution",
-    status: "Resolved",
-    description: "Construction noise is severe, affecting residents' normal life",
-    votes: 18,
-    date: "2024-01-10",
-    author: "Mike Davis"
-  }
-];
+// Fix for default markers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 function Map(){
     const [filter,setFilter]=useState("All");
-    const filteredIssues = filter=== "All" ?
-    issueData : issueData.filter(issue => issue.status === filter);
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch reports from backend
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/reports');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch reports');
+                }
+                const data = await response.json();
+                setReports(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReports();
+    }, []);
+
+    const filteredIssues = filter === "All" ?
+        reports : reports.filter(report => report.status === filter.toLowerCase());
 
     const getStatusColor =(status) =>{
-      switch(status){
-        case 'Pending' : return 'text-red-600 bg-red-100';
-        case 'In Progress' : return 'text-orange-600 bg-orange-100';
-        case 'Resolved' : return 'text-green-600 bg-green-100';
+      const statusLower = status?.toLowerCase();
+      switch(statusLower){
+        case 'pending' : return 'text-red-600 bg-red-100';
+        case 'in progress' : return 'text-orange-600 bg-orange-100';
+        case 'resolved' : return 'text-green-600 bg-green-100';
         default: return 'text-gray-600 bg-gray-100';
       }
     };
+
+    // Format status for display
+    const formatStatus = (status) => {
+        if (!status) return 'Pending';
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    };
+
+    if (loading) {
+        return <div className="flex h-screen items-center justify-center">Loading reports...</div>;
+    }
+
+    if (error) {
+        return <div className="flex h-screen items-center justify-center text-red-600">Error: {error}</div>;
+    }
+
     return(
       <div className="flex h-screen bg-white">
         {/*side bar*/}
-        <aside className ="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <aside className ="w-96 bg-white border-r border-gray-200 flex flex-col">
           {/*Header*/}
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Environmental Issues Map</h2>
@@ -55,7 +76,7 @@ function Map(){
               {["All", "Pending", "In Progress", "Resolved"].map(s => (
               <button
                 key={s}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   filter === s 
                     ? 'bg-green-500 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -70,45 +91,48 @@ function Map(){
         </div>
         {/*Issue List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {filteredIssues.map(issue =>(
+          {filteredIssues.map(report =>(
             <div
-              key={issue.id}
+              key={report.id}
               className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium text-gray-900 text-sm leading-tight pr-2">{issue.title}</h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(issue.status)}`}>
-                  {issue.status}
+                <h3 className="font-medium text-gray-900 text-sm leading-tight pr-2">{report.title}</h3>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(report.status)}`}>
+                  {formatStatus(report.status)}
                 </span>
                 </div>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{issue.description}</p>
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{report.description}</p>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <span>👍</span>
-                  <span>{issue.votes}</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                  {report.category}
                 </span>
-                <span>{issue.date}</span>
-                <span>by {issue.author}</span>
+                <span className={`px-2 py-1 rounded text-xs ${
+                  report.severity === 'high' ? 'bg-red-100 text-red-800' :
+                  report.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {report.severity}
+                </span>
+                <span>{report.location}</span>
               </div>
             </div>
           ))}
         </div>
         </aside>
-       {/*Map Area */}
-       <main className="flex-1 bg-green-50 relative">
-        {/*  Map Placeholder with pin */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            {/* Green location pin */}
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-              <div className="w-6 h-6 bg-white rounded-full"></div>
-              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-8 border-transparent border-t-green-500"></div>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Interactive Environmental Map</h3>
-            <p className="text-gray-600">Click on issues in the sidebar to view details on the map</p>
-          </div>
-        </div>
-       </main>
+      {/*Map Area */}
+      <main className="flex-1 relative">
+        <MapContainer 
+          center={[51.505, -0.09]} 
+          zoom={13} 
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+        </MapContainer>
+      </main>
       </div>
     );
 }
