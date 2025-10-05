@@ -1,18 +1,24 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import LocationPicker from "../components/LocationPicker";
 
 function ReportIssue() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     category: "Waste Management",
     severity: "",
     description: "",
-    location: ""
+    location: "",
+    latitude: null,
+    longitude: null
   });
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [titleCount, setTitleCount] = useState(0);
   const [descriptionCount, setDescriptionCount] = useState(0);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +33,84 @@ function ReportIssue() {
     } else if (name === 'description') {
       setDescriptionCount(value.length);
     }
+  };
+
+  // Get user's current location using GPS
+  const getCurrentLocation = () => {
+    setGettingLocation(true);
+    
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      setGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Reverse geocode to get address
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await response.json();
+          
+          setFormData(prev => ({
+            ...prev,
+            location: data.display_name || `${latitude}, ${longitude}`,
+            latitude,
+            longitude
+          }));
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          setFormData(prev => ({
+            ...prev,
+            location: `${latitude}, ${longitude}`,
+            latitude,
+            longitude
+          }));
+        }
+        
+        setGettingLocation(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        let message = 'Unable to get your location. ';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            message += 'Please allow location access.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            message += 'Location request timed out.';
+            break;
+          default:
+            message += 'An unknown error occurred.';
+            break;
+        }
+        alert(message);
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  // Handle location selection from map picker
+  const handleLocationSelect = (locationData) => {
+    setFormData(prev => ({
+      ...prev,
+      location: locationData.address,
+      latitude: locationData.lat,
+      longitude: locationData.lng
+    }));
+    setShowLocationPicker(false);
   };
 
   const handlePhotoChange = (e) => {
@@ -57,26 +141,32 @@ function ReportIssue() {
       }
 
       // Decode JWT token to get user_id
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const user_id = payload.id || payload.userId; // Adjust based on your JWT structure
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const user_id = payload.id || payload.userId;
 
       // Create FormData for multipart/form-data
       const submitData = new FormData();
       submitData.append('title', formData.title);
-      submitData.append('description', formData.description); // Send only the actual description
-      submitData.append('category', formData.category); // Send category separately
-      submitData.append('severity', formData.severity); // Send severity separately
+      submitData.append('description', formData.description);
+      submitData.append('category', formData.category);
+      submitData.append('severity', formData.severity);
       submitData.append('location', formData.location);
       submitData.append('user_id', user_id);
       
+      // Add coordinates if available
+      if (formData.latitude && formData.longitude) {
+        submitData.append('latitude', formData.latitude);
+        submitData.append('longitude', formData.longitude);
+      }
+      
       // Add photos if any
       if (photos.length > 0) {
-        submitData.append('image', photos[0]); // Backend expects single image
+        submitData.append('image', photos[0]);
       }
 
       const response = await fetch('http://localhost:5000/api/reports', {
         method: 'POST',
-         headers: {
+        headers: {
           'Authorization': `Bearer ${token}`,
         },
         body: submitData
@@ -84,27 +174,19 @@ function ReportIssue() {
 
       if (response.ok) {
         const result = await response.json();
-        alert('Report submitted successfully!');
-        // Reset form
-        setFormData({
-          title: "",
-          category: "Waste Management",
-          severity: "",
-          description: "",
-          location: ""
+        navigate('/map', { 
+          state: { 
+            message: 'Report submitted successfully! Your issue has been added to the map.',
+            newReport: result
+          }
         });
-        setPhotos([]);
-        setTitleCount(0);
-        setDescriptionCount(0);
       } else {
         const error = await response.json();
         if (response.status === 403) {
-        alert('Authentication failed. Please login again.');
-        // Optionally redirect to login page
-        // window.location.href = '/login';
-      } else {
-        alert(`Error: ${error.error || 'Failed to submit report'}`);
-      }
+          alert('Authentication failed. Please login again.');
+        } else {
+          alert(`Error: ${error.error || 'Failed to submit report'}`);
+        }
       }
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -120,7 +202,9 @@ function ReportIssue() {
       category: "Waste Management",
       severity: "",
       description: "",
-      location: ""
+      location: "",
+      latitude: null,
+      longitude: null
     });
     setPhotos([]);
     setTitleCount(0);
@@ -137,6 +221,7 @@ function ReportIssue() {
         <p className="text-gray-600 mb-8 leading-relaxed">
           Provide detailed information about the environmental issue you discovered to help relevant authorities respond quickly
         </p>
+        
         <form onSubmit={handleSubmit} className="space-y-6">
           <label className="block">
             <span className="block text-sm font-medium text-gray-700 mb-2">Issue Title *</span>
@@ -231,15 +316,18 @@ function ReportIssue() {
             <span className="text-xs text-gray-400 mt-1 block">{descriptionCount}/500</span>
           </label>
 
-          <label className="block">
+          {/* Enhanced Location Section */}
+          <div className="block">
             <span className="block text-sm font-medium text-gray-700 mb-2">Location Information *</span>
-            <div className="relative">
+            
+            {/* Location Input */}
+            <div className="relative mb-3">
               <input 
                 type="text" 
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                placeholder="Enter specific address or click on map to select location"
+                placeholder="Enter specific address or use location picker below"
                 className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-eco-green focus:border-transparent"
                 required
               />
@@ -249,8 +337,44 @@ function ReportIssue() {
                 </svg>
               </span>
             </div>
+
+            {/* Location Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={getCurrentLocation}
+                disabled={gettingLocation}
+                className={`flex-1 flex items-center justify-center px-4 py-3 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors ${
+                  gettingLocation ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" className="mr-2">
+                  <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                </svg>
+                {gettingLocation ? 'Getting Location...' : 'Use Current Location'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setShowLocationPicker(true)}
+                className="flex-1 flex items-center justify-center px-4 py-3 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors"
+              >
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" className="mr-2">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Pick on Map
+              </button>
+            </div>
+
+            {/* Show coordinates if available */}
+            {formData.latitude && formData.longitude && (
+              <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                📍 Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+              </div>
+            )}
+            
             <span className="text-xs text-gray-500 mt-1 block">GPS positioning is recommended for precise location</span>
-          </label>
+          </div>
 
           <label className="block">
             <span className="block text-sm font-medium text-gray-700 mb-2">Related Photos</span>
@@ -301,6 +425,17 @@ function ReportIssue() {
           </div>
         </form>
       </div>
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <LocationPicker
+          onLocationSelect={handleLocationSelect}
+          onClose={() => setShowLocationPicker(false)}
+          initialLocation={formData.latitude && formData.longitude ? 
+            { lat: formData.latitude, lng: formData.longitude } : null
+          }
+        />
+      )}
     </div>
   );
 }

@@ -56,7 +56,7 @@ function Dashboard() {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/dashboard-stats', {
+      const response = await fetch('http://localhost:5000/api/user/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -131,6 +131,9 @@ function Dashboard() {
       <header className="bg-white shadow-sm border-b px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
+            <Link to="/" className="px-4 py-2 text-eco-green border border-eco-green rounded-lg hover:bg-eco-green hover:text-white transition-colors">
+              Home
+            </Link>
             <div className="flex items-center text-2xl font-bold text-gray-800">
               <div className="w-8 h-8 bg-eco-green rounded-lg flex items-center justify-center mr-2">
                 <span className="text-white text-sm">🌱</span>

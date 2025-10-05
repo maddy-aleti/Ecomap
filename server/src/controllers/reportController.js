@@ -2,10 +2,9 @@ import pool from "../config/db.js";
 import fs from "fs";
 import path from "path";
 
-//Create a new report 
 export const createReport = async (req,res)=>{
     try{
-        const {title,description,category,severity,location,status,user_id}=req.body;
+        const {title,description,category,severity,location,status,user_id,latitude,longitude}=req.body;
         const image = req.file ? req.file.filename : null;
 
         // Validate required fields
@@ -15,9 +14,9 @@ export const createReport = async (req,res)=>{
 
          const newReport= await pool.query(
             `INSERT INTO reports 
-            (title, description, category, severity, location, status, user_id, image_url)
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [title, description, category, severity, location, status || "pending", user_id, image]
+            (title, description, category, severity, location, status, user_id, image_url, latitude, longitude)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [title, description, category, severity, location, status || "pending", user_id, image, latitude || null, longitude || null]
         );
         res.status(201).json(newReport.rows[0]);
     } catch (error) {
