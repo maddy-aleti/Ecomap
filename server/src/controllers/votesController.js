@@ -27,3 +27,17 @@ export const voteOnReport=async (req,res)=>{
 
     res.status(201).json({message: "Vote recorded successfully"});
 }
+
+export const getReportVotes = async (req, res) => {
+    try {
+        const reportId = req.params.id;
+        const result = await pool.query(
+            "SELECT vote_type FROM votes WHERE report_id = $1",
+            [reportId]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching votes:', error);
+        res.status(500).json({ error: 'Failed to fetch votes' });
+    }
+};

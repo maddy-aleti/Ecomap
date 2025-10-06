@@ -68,17 +68,39 @@ export const updateReportStatus = async (req,res)=>{
     try{
         const {id}=req.params;
         const {status}=req.body;
+        const userId = req.user?.id || req.user?.userId; // Get user ID from token
+
+        // Validate status
+        const validStatuses = ['pending', 'in progress', 'resolved'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        // Check if report exists and belongs to user
+        const reportCheck = await pool.query(
+            `SELECT user_id FROM reports WHERE id = $1`, [id]
+        );
+
+        if (reportCheck.rows.length === 0) {
+            return res.status(404).json({ error: "Report not found" });
+        }
+         // Allow update only if user owns the report OR user is admin/authority
+        if (reportCheck.rows[0].user_id !== userId && req.user?.role !== 'admin') {
+            return res.status(403).json({ error: "You can only update your own reports" });
+        }
 
         const updated= await pool.query(
-            `update reports set status=$1 where id =$2 returning *`,
+            `UPDATE reports SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
             [status, id]
         );
+
         if( updated.rows.length ===0){
            return res.status(404).json({error:"Report not found"});
         }
         res.json(updated.rows[0]);
     }
     catch(err){
+        console.error('Error updating report status:', err);
         res.status(500).json({error:err.message});
     }
 };
@@ -86,23 +108,39 @@ export const updateReportStatus = async (req,res)=>{
 export const deleteReport =async (req,res)=>{
     try{
         const {id}=req.params;
+        const userId = req.user?.id || req.user?.userId; // Get user ID from token
 
-        //Optional : delete image file from uploads folder 
-        const report =await pool.query(`select * from reports where id =$1`,
-            [id]
+        // Check if report exists and belongs to user
+        const reportCheck = await pool.query(
+            `SELECT user_id, image_url FROM reports WHERE id = $1`, [id]
         );
-        if(report.rows[0]?.image){
-            fs.unlinkSync(path.join("uploads",report.rows[0].image));
+
+        if (reportCheck.rows.length === 0) {
+            return res.status(404).json({ error: "Report not found" });
         }
 
-        const deleted= await pool.query(`delete from reports 
-            where id =$1 returning *`,[id]);
+        // Allow deletion only if user owns the report OR user is admin
+        if (reportCheck.rows[0].user_id !== userId && req.user?.role !== 'admin') {
+            return res.status(403).json({ error: "You can only delete your own reports" });
+        }
+         //Optional : delete image file from uploads folder 
+        if(reportCheck.rows[0]?.image_url){
+            const imagePath = path.join("uploads", reportCheck.rows[0].image_url);
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
+        }
+
+        const deleted= await pool.query(`DELETE FROM reports 
+            WHERE id=$1 RETURNING *`,[id]);
+        
         if(deleted.rows.length === 0){
-            return res.status(404).json({message:"Report not found"});
+            return res.status(404).json({error:"Report not found"});
         }
         res.json({message:"Report deleted successfully"});
     }
     catch(err){
+        console.error('Error deleting report:', err);
         res.status(500).json({error: err.message});
     }
 };

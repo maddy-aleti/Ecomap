@@ -10,12 +10,25 @@ function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [actionLoading, setActionLoading] = useState({});
+  const [reportVotes, setReportVotes] = useState({}); // Store votes for each report
+  const [reportComments, setReportComments] = useState({}); // Store comments for each report
+  const [commentInputs, setCommentInputs] = useState({}); // Store comment input values
+  const [showComments, setShowComments] = useState({}); // Toggle comment visibility
 
   useEffect(() => {
     fetchUserData();
     fetchUserReports();
     fetchDashboardStats();
   }, []);
+
+  useEffect(() => {
+    // Fetch votes and comments for all reports
+    userReports.forEach(report => {
+      fetchReportVotes(report.id);
+      fetchReportComments(report.id);
+    });
+  }, [userReports]);
 
   const fetchUserData = async () => {
     try {
@@ -70,6 +83,193 @@ function Dashboard() {
       console.error('Error fetching dashboard stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReportVotes = async (reportId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}/votes`);
+      if (response.ok) {
+        const votes = await response.json();
+        const upvotes = votes.filter(v => v.vote_type === 'upvote').length;
+        const downvotes = votes.filter(v => v.vote_type === 'downvote').length;
+        setReportVotes(prev => ({
+          ...prev,
+          [reportId]: { upvotes, downvotes, total: upvotes - downvotes }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching votes:', error);
+    }
+  };
+
+  const fetchReportComments = async (reportId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`);
+      if (response.ok) {
+        const comments = await response.json();
+        setReportComments(prev => ({
+          ...prev,
+          [reportId]: comments
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  const handleVote = async (reportId, voteType) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ vote_type: voteType }),
+      });
+
+      if (response.ok) {
+        // Refresh votes for this report
+        fetchReportVotes(reportId);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to vote');
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleAddComment = async (reportId) => {
+    const comment = commentInputs[reportId]?.trim();
+    if (!comment) return;
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ comment }),
+      });
+
+      if (response.ok) {
+        // Clear the input and refresh comments
+        setCommentInputs(prev => ({ ...prev, [reportId]: '' }));
+        fetchReportComments(reportId);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleDeleteReport = async (reportId) => {
+    if (!window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, [`delete-${reportId}`]: true }));
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Remove report from local state
+        setUserReports(prev => prev.filter(report => report.id !== reportId));
+        
+        // Update stats
+        const deletedReport = userReports.find(r => r.id === reportId);
+        if (deletedReport) {
+          setStats(prev => ({
+            ...prev,
+            userReports: {
+              ...prev.userReports,
+              total_reports: prev.userReports.total_reports - 1,
+              pending_reports: deletedReport.status === 'pending' ? prev.userReports.pending_reports - 1 : prev.userReports.pending_reports,
+              in_progress_reports: deletedReport.status === 'in progress' ? prev.userReports.in_progress_reports - 1 : prev.userReports.in_progress_reports,
+              resolved_reports: deletedReport.status === 'resolved' ? prev.userReports.resolved_reports - 1 : prev.userReports.resolved_reports
+            }
+          }));
+        }
+
+        alert('Report deleted successfully');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to delete report'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`delete-${reportId}`]: false }));
+    }
+  };
+
+  const handleMarkAsCompleted = async (reportId) => {
+    if (!window.confirm('Are you sure you want to mark this report as resolved?')) {
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, [`complete-${reportId}`]: true }));
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/reports/${reportId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'resolved' }),
+      });
+
+      if (response.ok) {
+        // Update report status in local state
+        setUserReports(prev => prev.map(report => 
+          report.id === reportId 
+            ? { ...report, status: 'resolved' }
+            : report
+        ));
+
+        // Update stats
+        const currentReport = userReports.find(r => r.id === reportId);
+        if (currentReport) {
+          setStats(prev => ({
+            ...prev,
+            userReports: {
+              ...prev.userReports,
+              pending_reports: currentReport.status === 'pending' ? prev.userReports.pending_reports - 1 : prev.userReports.pending_reports,
+              in_progress_reports: currentReport.status === 'in progress' ? prev.userReports.in_progress_reports - 1 : prev.userReports.in_progress_reports,
+              resolved_reports: prev.userReports.resolved_reports + 1
+            }
+          }));
+        }
+
+        alert('Report marked as resolved successfully');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update report status'}`);
+      }
+    } catch (error) {
+      console.error('Error updating report status:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`complete-${reportId}`]: false }));
     }
   };
 
@@ -287,15 +487,99 @@ function Dashboard() {
                         />
                       </div>
                     )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>👍 0</span>
-                        <span>💬 0</span>
-                        <span>📤 Share</span>
+                    
+                    {/* Voting and Comments Section */}
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-6 text-sm text-gray-500">
+                          {/* Voting */}
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={() => handleVote(report.id, 'upvote')}
+                              className="flex items-center space-x-1 hover:text-green-600 transition-colors"
+                            >
+                              <span>👍</span>
+                              <span>{reportVotes[report.id]?.upvotes || 0}</span>
+                            </button>
+                            <button 
+                              onClick={() => handleVote(report.id, 'downvote')}
+                              className="flex items-center space-x-1 hover:text-red-600 transition-colors"
+                            >
+                              <span>👎</span>
+                              <span>{reportVotes[report.id]?.downvotes || 0}</span>
+                            </button>
+                          </div>
+                          
+                          {/* Comments Toggle */}
+                          <button 
+                            onClick={() => setShowComments(prev => ({...prev, [report.id]: !prev[report.id]}))}
+                            className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                          >
+                            <span>💬</span>
+                            <span>{reportComments[report.id]?.length || 0}</span>
+                          </button>
+                          
+                          <span>📤 Share</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          {/* Mark as Completed Button - only show if not resolved */}
+                          {report.status !== 'resolved' && (
+                            <button 
+                              onClick={() => handleMarkAsCompleted(report.id)}
+                              disabled={actionLoading[`complete-${report.id}`]}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading[`complete-${report.id}`] ? 'Updating...' : '✓ Mark Complete'}
+                            </button>
+                          )}
+                          
+                          {/* Delete Button */}
+                          <button 
+                            onClick={() => handleDeleteReport(report.id)}
+                            disabled={actionLoading[`delete-${report.id}`]}
+                            className="px-3 py-1.5 bg-red-500 text-white rounded text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {actionLoading[`delete-${report.id}`] ? 'Deleting...' : '🗑️ Delete'}
+                          </button>
+                        </div>
                       </div>
-                      <button className="px-4 py-2 bg-eco-green text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors">
-                        View Details →
-                      </button>
+                      
+                      {/* Comments Section */}
+                      {showComments[report.id] && (
+                        <div className="mt-4 space-y-3">
+                          {/* Add Comment */}
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={commentInputs[report.id] || ''}
+                              onChange={(e) => setCommentInputs(prev => ({...prev, [report.id]: e.target.value}))}
+                              placeholder="Add a comment..."
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-eco-green"
+                              onKeyPress={(e) => e.key === 'Enter' && handleAddComment(report.id)}
+                            />
+                            <button
+                              onClick={() => handleAddComment(report.id)}
+                              className="px-4 py-2 bg-eco-green text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
+                            >
+                              Post
+                            </button>
+                          </div>
+                          
+                          {/* Comments List */}
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {reportComments[report.id]?.map((comment, index) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-700">User {comment.user_id}</span>
+                                  <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                                </div>
+                                <p className="text-sm text-gray-600">{comment.comment}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

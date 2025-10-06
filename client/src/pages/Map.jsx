@@ -55,6 +55,10 @@ function Map(){
     const [geocoding, setGeocoding] = useState(false);
     const [error, setError] = useState(null);
     const [mapCenter, setMapCenter] = useState([51.505, -0.09]); // Default to London
+    const [reportVotes, setReportVotes] = useState({}); // Store votes for each report
+    const [reportComments, setReportComments] = useState({}); // Store comments for each report
+    const [commentInputs, setCommentInputs] = useState({}); // Store comment input values
+    const [showComments, setShowComments] = useState({}); // Toggle comment visibility
 
     // Fetch reports from backend
     useEffect(() => {
@@ -89,6 +93,110 @@ function Map(){
         fetchReports();
     }, []);
 
+    useEffect(() => {
+        // Fetch votes and comments for all reports
+        reports.forEach(report => {
+            fetchReportVotes(report.id);
+            fetchReportComments(report.id);
+        });
+    }, [reports]);
+
+    const fetchReportVotes = async (reportId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/votes`);
+            if (response.ok) {
+                const votes = await response.json();
+                const upvotes = votes.filter(v => v.vote_type === 'upvote').length;
+                const downvotes = votes.filter(v => v.vote_type === 'downvote').length;
+                setReportVotes(prev => ({
+                    ...prev,
+                    [reportId]: { upvotes, downvotes, total: upvotes - downvotes }
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching votes:', error);
+        }
+    };
+
+    const fetchReportComments = async (reportId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`);
+            if (response.ok) {
+                const comments = await response.json();
+                setReportComments(prev => ({
+                    ...prev,
+                    [reportId]: comments
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+        }
+    };
+
+    const handleVote = async (reportId, voteType) => {
+        try {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!token) {
+                alert('Please login to vote');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/vote`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ vote_type: voteType }),
+            });
+
+            if (response.ok) {
+                // Refresh votes for this report
+                fetchReportVotes(reportId);
+            } else {
+                const error = await response.json();
+                alert(error.error || 'Failed to vote');
+            }
+        } catch (error) {
+            console.error('Error voting:', error);
+            alert('Network error. Please try again.');
+        }
+    };
+
+    const handleAddComment = async (reportId) => {
+        const comment = commentInputs[reportId]?.trim();
+        if (!comment) return;
+
+        try {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!token) {
+                alert('Please login to comment');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ comment }),
+            });
+
+            if (response.ok) {
+                // Clear the input and refresh comments
+                setCommentInputs(prev => ({ ...prev, [reportId]: '' }));
+                fetchReportComments(reportId);
+            } else {
+                const error = await response.json();
+                alert(error.error || 'Failed to add comment');
+            }
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            alert('Network error. Please try again.');
+        }
+    };
+
     const filteredIssues = filter === "All" ?
         reports : reports.filter(report => report.status === filter.toLowerCase());
 
@@ -112,7 +220,13 @@ function Map(){
     };
 
     const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString();
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+        
+        if (diffInHours < 1) return 'Just now';
+        if (diffInHours < 24) return `${diffInHours} hours ago`;
+        return `${Math.floor(diffInHours / 24)} days ago`;
     };
 
     if (loading) {
@@ -159,7 +273,7 @@ function Map(){
           {filteredIssues.map(report =>(
             <div
               key={report.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-2">
                 <h3 className="font-medium text-gray-900 text-sm leading-tight pr-2">{report.title}</h3>
@@ -201,10 +315,80 @@ function Map(){
               </div>
               
               {report.created_at && (
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-gray-400 mb-3">
                   Created: {formatDate(report.created_at)}
                 </div>
               )}
+
+              {/* Voting and Comments Section */}
+              <div className="border-t pt-3 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-4 text-xs">
+                    {/* Voting */}
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => handleVote(report.id, 'upvote')}
+                        className="flex items-center space-x-1 hover:text-green-600 transition-colors"
+                      >
+                        <span>👍</span>
+                        <span>{reportVotes[report.id]?.upvotes || 0}</span>
+                      </button>
+                      <button 
+                        onClick={() => handleVote(report.id, 'downvote')}
+                        className="flex items-center space-x-1 hover:text-red-600 transition-colors"
+                      >
+                        <span>👎</span>
+                        <span>{reportVotes[report.id]?.downvotes || 0}</span>
+                      </button>
+                    </div>
+                    
+                    {/* Comments Toggle */}
+                    <button 
+                      onClick={() => setShowComments(prev => ({...prev, [report.id]: !prev[report.id]}))}
+                      className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                    >
+                      <span>💬</span>
+                      <span>{reportComments[report.id]?.length || 0}</span>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Comments Section */}
+                {showComments[report.id] && (
+                  <div className="mt-2 space-y-2">
+                    {/* Add Comment */}
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={commentInputs[report.id] || ''}
+                        onChange={(e) => setCommentInputs(prev => ({...prev, [report.id]: e.target.value}))}
+                        placeholder="Add a comment..."
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-eco-green"
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddComment(report.id)}
+                      />
+                      <button
+                        onClick={() => handleAddComment(report.id)}
+                        className="px-2 py-1 bg-eco-green text-white rounded text-xs hover:bg-green-600 transition-colors"
+                      >
+                        Post
+                      </button>
+                    </div>
+                    
+                    {/* Comments List */}
+                    <div className="space-y-1 max-h-24 overflow-y-auto">
+                      {reportComments[report.id]?.map((comment, index) => (
+                        <div key={index} className="bg-gray-50 p-2 rounded">
+                          <div className="flex items-center space-x-1 mb-1">
+                            <span className="text-xs font-medium text-gray-700">User {comment.user_id}</span>
+                            <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                          </div>
+                          <p className="text-xs text-gray-600">{comment.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -247,6 +431,28 @@ function Map(){
                         'bg-green-100 text-green-800'
                       }`}>
                         {report.severity}
+                      </span>
+                    </div>
+                    
+                    {/* Voting in Popup */}
+                    <div className="flex items-center space-x-3 mb-2 text-sm">
+                      <button 
+                        onClick={() => handleVote(report.id, 'upvote')}
+                        className="flex items-center space-x-1 hover:text-green-600"
+                      >
+                        <span>👍</span>
+                        <span>{reportVotes[report.id]?.upvotes || 0}</span>
+                      </button>
+                      <button 
+                        onClick={() => handleVote(report.id, 'downvote')}
+                        className="flex items-center space-x-1 hover:text-red-600"
+                      >
+                        <span>👎</span>
+                        <span>{reportVotes[report.id]?.downvotes || 0}</span>
+                      </button>
+                      <span className="flex items-center space-x-1">
+                        <span>💬</span>
+                        <span>{reportComments[report.id]?.length || 0}</span>
                       </span>
                     </div>
                     
