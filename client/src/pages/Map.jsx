@@ -64,7 +64,7 @@ function Map(){
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/reports');
+                const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch reports');
                 }
@@ -103,7 +103,7 @@ function Map(){
 
     const fetchReportVotes = async (reportId) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/votes`);
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports/${reportId}/votes`);
             if (response.ok) {
                 const votes = await response.json();
                 const upvotes = votes.filter(v => v.vote_type === 'upvote').length;
@@ -120,7 +120,7 @@ function Map(){
 
     const fetchReportComments = async (reportId) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`);
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports/${reportId}/comments`);
             if (response.ok) {
                 const comments = await response.json();
                 setReportComments(prev => ({
@@ -141,7 +141,7 @@ function Map(){
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/vote`, {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports/${reportId}/vote`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -174,7 +174,7 @@ function Map(){
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/reports/${reportId}/comments`, {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports/${reportId}/comments`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -287,7 +287,7 @@ function Map(){
                 {report.image_url && (
                   <div className="mb-3">
                     <img 
-                      src={`http://localhost:5000/uploads/${report.image_url}`}
+                      src={`${import.meta.env.VITE_SERVER_URL}/uploads/${report.image_url}`}
                       alt="Report"
                       className="w-full h-32 object-cover rounded-lg"
                       onError={(e) => {
@@ -465,7 +465,7 @@ function Map(){
                     
                     {report.image_url && (
                       <img 
-                        src={`http://localhost:5000/uploads/${report.image_url}`}
+                        src={`${import.meta.env.VITE_SERVER_URL}/uploads/${report.image_url}`}
                         alt="Report"
                         className="w-full h-20 object-cover rounded mt-2"
                       />

@@ -164,7 +164,7 @@ function ReportIssue() {
         submitData.append('image', photos[0]);
       }
 
-      const response = await fetch('http://localhost:5000/api/reports', {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/reports`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
