@@ -18,15 +18,14 @@ const app=express();
 
 app.use(
     cors({
-        origin: process.env.CLIENT_URL,
+        origin: process.env.CLIENT_URL || "http://localhost:5173",
         credentials:true,
-        methods:["GET","POST","PUT","DELETE"],
+        methods:["GET","POST","PUT","DELETE","PATCH"],
         allowedHeaders:["Content-Type","Authorization"],
     })
 );
 
 //middleware 
-app.use(cors());
 app.use(express.json());
 
 // Serve uploaded images
@@ -41,6 +40,18 @@ app.use("/api/user", userRoutes);
 
 app.get("/ping",(req,res)=>{
     res.send("message: \"pong\" ");
-})
+});
+
+// Add this before export default app;
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({ message: 'Route not found' });
+});
 
 export default app;
