@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Report from "../models/Report.js";
+import mongoose from "mongoose";
 
 /**
  * GET USER PROFILE
@@ -51,7 +52,7 @@ export const getDashboardStats = async (req, res) => {
 
     // User report statistics
     const stats = await Report.aggregate([
-      { $match: { user: userId } },
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
       {
         $group: {
           _id: null,
