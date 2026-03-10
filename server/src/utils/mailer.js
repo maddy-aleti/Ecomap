@@ -4,10 +4,64 @@ import nodemailer from "nodemailer";
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.GMAIL_USER || "mkalyan8400@gmail.com",
-    pass: process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD,
+    user: process.env.EMAIL_USER || "mkalyan8400@gmail.com",
+    pass: process.env.EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD,
   },
 });
+
+/**
+ * Send email verification link
+ */
+export const sendVerificationEmail = async (to, userName, verificationToken) => {
+  try {
+    const verificationUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "mkalyan8400@gmail.com",
+      to: to,
+      subject: "Verify Your Email - EcoMap",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #10B981; margin-bottom: 20px;">Welcome to EcoMap, ${userName}!</h2>
+            
+            <p>Thank you for registering with EcoMap. To complete your registration and start reporting environmental issues, please verify your email address.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" style="background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                Verify Email Address
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="color: #10B981; word-break: break-all; font-size: 14px;">
+              ${verificationUrl}
+            </p>
+            
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              This verification link will expire in 24 hours. If you didn't create an account with EcoMap, please ignore this email.
+            </p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #999; font-size: 12px;">
+                This is an automated email. Please do not reply to this message.
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Verification email sent:", info.response);
+    return { success: true, message: "Verification email sent successfully" };
+  } catch (error) {
+    console.error("Error sending verification email:", error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Send email for new report submission

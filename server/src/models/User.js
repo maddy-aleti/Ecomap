@@ -17,13 +17,40 @@ const userSchema = new mongoose.Schema(
 
     passwordHash: {
       type: String,
-      required: true
+      required: function() {
+        return this.authProvider === 'local';
+      }
+    },
+
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+
+    googleId: {
+      type: String,
+      sparse: true,
+      unique: true
     },
 
     role: {
       type: String,
       default: "citizen",
       enum: ["citizen", "admin"]
+    },
+
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    emailVerificationToken: {
+      type: String
+    },
+
+    emailVerificationExpires: {
+      type: Date
     }
   },
   { timestamps: true }

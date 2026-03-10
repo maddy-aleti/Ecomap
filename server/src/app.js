@@ -1,11 +1,12 @@
 import express from "express";
+import cors from "cors";
+import passport from "./config/passport.js";
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import commentsRoutes from "./routes/commentsRoutes.js";
 import votesRoutes from "./routes/votesRoutes.js";
-import cors from "cors";
 
 const app = express();
 
@@ -14,9 +15,11 @@ app.use(cors({
   credentials: true
 }));
 
-
 // Middleware
 app.use(express.json());
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // Routes
 app.use("/api/auth", authRoutes);
