@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import LocationPicker from "../components/LocationPicker";
-import api from "../api/axios";
+import api from "../../../shared/api/client";
 
 function ReportIssue() {
   const navigate = useNavigate();
